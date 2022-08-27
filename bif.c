@@ -30,7 +30,6 @@ BIF(sub) {
 BIF(get_ctx) {
   return ctx;
 }
-(() ())
 
 // add_to_img controls if symbols should be updated for the BIFs
 // this allows old images to not get their existing symbols overwritten

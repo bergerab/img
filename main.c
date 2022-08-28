@@ -12,6 +12,8 @@ word CTXS; // contexts
 word ARGS; // argument stack
 word FUN; // fun symbol
 word IF; // if symbol
+word POPEN; // ( symbol
+word PCLOSE; // ) symbol
 
 #include "util.c"
 #include "bif.c"
@@ -44,10 +46,10 @@ word pac(word name, word pacs, word syms, word doc) { // packages are like folde
 }
 
 word fun(word name, word args, word body, word doc) { // packages are like folders for symbols
-  word props = count(args);
+  word props = REF_NUM(count(args));
   // after body is the ENV this is for closures -- only useful when there's nested functions
-  word p = cons(props, cons(name, cons(args, cons(body, cons(NIL, cons(doc, NIL))))));
-  return REF_PAC(UNREF(p));
+  word f = cons(name, cons(props, cons(args, cons(body, cons(NIL, cons(doc, NIL))))));
+  return REF_FUN(UNREF(f));
 }
 
 void init_img() { /* bootstraps an initial environment */
@@ -65,6 +67,8 @@ void init_img() { /* bootstraps an initial environment */
   ARGS = intern("args", MAIN);
   FUN = intern("fun", MAIN);
   IF = intern("if", MAIN);
+  POPEN = intern("(", MAIN);
+  PCLOSE = intern(")", MAIN);
 }
 
 void dump_img(char *fp) {
@@ -100,6 +104,8 @@ void load_img(char *fp) {
   ARGS = intern("args", MAIN);
   FUN = intern("fun", MAIN);
   IF = intern("if", MAIN);
+  POPEN = intern("(", MAIN);
+  PCLOSE = intern(")", MAIN);
 }
 
 void free_cell(word cons) {
@@ -110,45 +116,70 @@ void free_list(word cons) {
 
 }
 
+// (fun a (a) "mydoc" (+ a a))
+// (a 10) fails
+// some numbers are cursed like 0 9 10 100
 word eval(word e, word env) {
   if (IS_SYM(e)) {
-    return SYM_VAL(e);  // want to make this customizable (a b c d)
+    while (env != NIL) {
+      word pair = FCAR1(env);
+      if (FCAR1(pair) == e) return FCDR1(pair);
+      env = FCDR1(env);
+    }
+    return SYM_VAL(e);
   } else if (IS_CONS(e)) {
     word car = FCAR1(e);
     word args = FCDR1(e);
 
-    if (IS_SYM(car)) car = eval(car, env);
+    if (IS_SYM(car) || IS_CONS(car)) car = eval(car, env);
     // argcount, args, and temps
     if (IS_BIF(car)) {
       return eval_bif(car, args, env);
     } else if (IS_FUN(car)) {
-      // last spot is for temps:
-      word count;
-      word ext = NIL;  // extended environment record
+      word count = 0;
       word fargs = FUN_ARGS(car);
       while (args != NIL && fargs != NIL) {
-        ext = cons(cons(FCAR1(fargs), eval(FCAR1(args), env)), ext);
+        env = cons(cons(FCAR1(fargs), eval(FCAR1(args), env)), env);
         fargs = FCDR1(fargs);
         args = FCDR1(args);
         ++count;
       }
-      if (FUN_PROPS(car) != count) {
-        printf("Invalid arguments passed\n");
+      if (UNREF(FUN_PROPS(car)) != count) {
+        printf("Invalid arguments passed. Expected %llu but got %llu.\n", UNREF(FUN_PROPS(car)), count);
         exit(1);
       }
-      word extenv = cons(ext, FUN_ENV(car));
-      word r = eval(FUN_BODY(car), extenv);
-      extenv = FCDR1(extenv);
-      free_cell(extenv);
-      free_list(ext);
+      word body = FUN_BODY(car);
+      word r;
+      while (body != NIL) {
+        r = eval(FCAR1(body), env);
+        body = FCDR1(body);
+      }
       return r;
     } else {
-      printf("Invalid object in car spot.\n");
+      printf("Invalid object in car spot %lld.\n", TYPE_CODE(car));
       exit(1);
     }
-  } else {
+  } else { // self evaluating forms
     return e;
   }
+}
+
+void print_cons(word e) {
+  printf("(");
+  print(CONS_CAR(e));
+  word c = CONS_CDR(e);
+  while (c != NIL) {
+    if (IS_CONS(c)) {
+      printf(" ");
+      print(CONS_CAR(c));
+      c = CONS_CDR(c);
+    } else {
+      printf(" ");
+      print(c);
+      break;
+    }
+  }
+  printf(")");
 }
 
 void print(word e) {
@@ -160,22 +191,10 @@ void print(word e) {
     printf("\"%s\"", STR_CSTR(e));
   else if (IS_PAC(e))
     printf("<pac %s>", STR_CSTR(PAC_NAME(e)));
+  else if (IS_FUN(e))
+    printf("<fun %s>", STR_CSTR(SYM_NAME(FUN_NAME(e))));
   else if (IS_CONS(e)) {
-    printf("(");
-    print(CONS_CAR(e));
-    word c = CONS_CDR(e);
-    while (c != NIL) {
-      if (IS_CONS(c)) {
-        printf(" ");
-        print(CONS_CAR(c));
-        c = CONS_CDR(c);
-      } else {
-        printf(" ");
-        print(c);
-        break;
-      }
-    }
-    printf(")");
+    print_cons(e);
   } else {
     printf("Failed to print unknown type %lld\n", TYPE_CODE(e));
     exit(1);
@@ -185,7 +204,7 @@ void print(word e) {
 // reader
 char is_whitespace(int c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
 char is_breakchar(int c) { return c == '(' || c == ')' || c == '"'; }
-char is_digit(int c) { return c > '0' && c < '9'; }
+char is_digit(int c) { return c >= '0' && c <= '9'; }
 char skip_whitespace(FILE *f) {
   int c;
   while ((c = fgetc(f)) != EOF && is_whitespace(c));
@@ -219,19 +238,28 @@ word read_sym(FILE *f) {
 }
 
 word read(FILE *f) { // reads a single expr
-  word e; word root = NIL;
-  word q = queue(); char started = 0;
-  word popen = intern("(", MAIN);
-  word pclose = intern(")", MAIN);
+  word e, q = NIL;
   if (!skip_whitespace(f)) return 0;
   while ((e = read_sym(f))) {
-    if (e == popen) {
-      started = 1;
-    } else if (e == pclose) {
-      return Q_HEAD(q);
+    if (e == POPEN) {
+      if (q == NIL) q = queue();
+      push_queue(q, queue());
+    } else if (e == PCLOSE) {
+      if (UNREF(Q_SIZE(q)) == 1) { // last item ((1 2 3)) -> (1 2 3)
+        word sexpr_q = queue_first(q);
+        free_queue(q);
+        word sexpr = Q_HEAD(sexpr_q);
+        free_queue(sexpr_q);
+        return sexpr;
+      } else { // merge - ((x y z) (a b c) (1 2 3)) -> (1 2 3 (a b c (x y z)))
+        word sexpr_q = dequeue(q);
+        word sexpr = Q_HEAD(sexpr_q);
+        free_queue(sexpr_q);
+        enqueue(queue_first(q), sexpr);
+      }
     } else {
-      if (!started) return e;
-      else enqueue(q, e);
+      if (q == NIL) return e;
+      enqueue(queue_first(q), e);
     }
   }
   return Q_HEAD(q);
@@ -249,7 +277,8 @@ int main() {
 
   while (1) {
     printf(">> ");
-    print(read(stdin));
+    word e = read(stdin);
+    print(eval(e, NIL));
     printf("\n");
   }
 

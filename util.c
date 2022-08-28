@@ -38,22 +38,47 @@ word push(word c, word val) {
 
 #define Q_HEAD(q) FCAR1(q)
 #define Q_TAIL(q) FCAR2(q)
+#define Q_SIZE(q) FCAR3(q)
+
 word queue() {
-  // first item is head second is tail
-  return cons(NIL, cons(NIL, NIL));
+  // first item is head, second is tail, last is count
+  return cons(NIL, cons(NIL, cons(REF_NUM(0), NIL)));
+}
+
+word queue_last(word q) {
+  return car(Q_TAIL(q));
+}
+
+word queue_first(word q) {
+  return car(Q_HEAD(q));
+}
+
+void free_queue(word q) {
+  free_list(q);
 }
 
 void enqueue(word q, word val) {
-  if (FCAR1(q) == NIL) Q_HEAD(q) = Q_TAIL(q) = cons(val, NIL);
+  if (Q_HEAD(q) == NIL) Q_HEAD(q) = Q_TAIL(q) = cons(val, NIL);
   else Q_TAIL(q) = FCDR1(Q_TAIL(q)) = cons(val, NIL);
+  Q_SIZE(q) = REF_NUM(UNREF(Q_SIZE(q)) + 1);
 }
 
-void dequeue(word q, word val) {
+void push_queue(word q, word val) {
+  if (Q_HEAD(q) == NIL) Q_HEAD(q) = Q_TAIL(q) = cons(val, NIL);
+  else Q_HEAD(q) = cons(val, Q_HEAD(q));
+  Q_SIZE(q) = REF_NUM(UNREF(Q_SIZE(q)) + 1);
+}
+
+word dequeue(word q) {
   if (Q_HEAD(q) != NIL) {
     word dead = Q_HEAD(q);
+    word val = FCAR1(dead);
     Q_HEAD(q) = FCDR1(Q_HEAD(q));
     free_cell(dead);
+    Q_SIZE(q) = REF_NUM(UNREF(Q_SIZE(q)) - 1);
+    return val;
   }
+  return NIL;
 }
 
 void show_pac(word pac) {

@@ -27,24 +27,32 @@ BIF(add) {
   while (args != NIL) {
     word car = CONS_CAR(args);
     if (IS_NUM(car)) c += UNREF(car);
-    else { printf("Error not a number\n"); exit(1); }
+    else { printf("Error not a number: "); print(car); exit(1); }
     args = cdr(args);
   }
   return REF_NUM(c);
 }
 
-// (fun name (() body))
 BIF(fun) {
   word name = FCAR1(args);
-  word fargs = FCAR2(args);
-  word body = FCDR2(args);
+  word fargs;
+  word body;
+  if (IS_CONS(name)) { // unnamed function
+    fargs = name;
+    name = NIL;
+    body = FCDR1(args);
+  } else {
+    fargs = FCAR2(args);
+    body = FCDR2(args);
+  }
   word doc = NIL;
-  if (IS_STR(FCAR1(body))) {
+  if (IS_STR(car(body))) {
     doc = FCAR1(body);
     body = FCDR1(body);
   }
   word f = fun(name, fargs, body, doc);
   FUN_ENV(f) = env; // closure environment
+  SYM_VAL(name) = f;
   return f;
 }
 

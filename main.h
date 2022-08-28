@@ -28,23 +28,24 @@ extern word PAC; // the current package
 
 // using my own IMG instead of actual memory allows us to use
 // the pointer hack. It isn't supported usually.
-#define TYPE_CODE(ptr) (ptr & 0xff)
-#define REF_NUM(n)   (n << 8)
+#define TYPE_CODE(ptr) ((ptr) & 0xff)
+#define REF_NUM(n)   ((n) << 8)
 #define IS_NUM(n)    (TYPE_CODE(n) == 0)
-#define UNREF(ref)   (ref >> 8)
+#define UNREF(ref)   ((ref) >> 8)
 #define DEREF(ref)   (IMG[UNREF(ref)])
 #define IMGREF(ref)  (&DEREF(ref))
-#define REF(ptr, id) ((ptr << 8) | id)
-#define IS_TYPE(ptr, id) TYPE_CODE(ptr) == id
+#define REF(ptr, id) (((ptr) << 8) | id)
+#define IS_TYPE(ptr, id) (TYPE_CODE(ptr) == id)
 
 // Fast car -- used when you want to get a car that you know is a few cons deep
 // Fast car is also a dangerous car. Use only if you know the cons list is that deep
 #define FCAR1(o) (IMGREF(o)[0])
 #define FCAR2(o) (IMGREF(IMGREF(o)[1])[0])
 #define FCAR3(o) (IMGREF(IMGREF(IMGREF(o)[1])[1])[0])
-#define FCAR4(o) (IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(o)[1])[1])[1])[1])[0])
-#define FCAR5(o) (IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(o)[1])[1])[1])[1])[1])[0])
-#define FCAR6(o) (IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(o)[1])[1])[1])[1])[1])[1])[0])
+#define FCAR4(o) (IMGREF(IMGREF(IMGREF(IMGREF(o)[1])[1])[1])[0])
+#define FCAR5(o) (IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(o)[1])[1])[1])[1])[0])
+#define FCAR6(o) (IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(o)[1])[1])[1])[1])[1])[0])
+#define FCAR7(o) (IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(IMGREF(o)[1])[1])[1])[1])[1])[1])[0])
 #define FCDR1(o) (IMGREF(o)[1])
 #define FCDR2(o) (IMGREF(IMGREF(o)[1])[1])
 
@@ -87,17 +88,19 @@ word pac(word name, word pacs, word syms, word doc); // packages are like folder
 // 0000 1111
 #define REF_FUN(ptr)   REF(ptr, 15)
 #define IS_FUN(ptr)    IS_TYPE(ptr, 15)
-#define FUN_PROPS(sym) FCAR1(sym)
-#define FUN_NAME(sym)  FCAR2(sym)
-#define FUN_ARGS(sym)  FCAR3(sym)
-#define FUN_BODY(sym)  FCAR4(sym)
-#define FUN_ENV(sym)   FCAR5(sym)
-#define FUN_DOC(sym)   FCAR6(sym)
+#define FUN_NAME(fun)  FCAR1(fun)
+#define FUN_PROPS(fun) FCAR2(fun)
+#define FUN_ARGS(fun)  FCAR3(fun)
+#define FUN_BODY(fun)  FCAR4(fun)
+#define FUN_ENV(fun)   FCAR5(fun)
+#define FUN_DOC(fun)   FCAR6(fun)
 word fun(word name, word args, word body, word doc);
-
 
 word intern(char *s, word pac);
 word eval();
 
 void free_list(word cons);
 void free_cell(word cons);
+
+void print_cons(word e);
+void print(word e);

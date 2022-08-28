@@ -30,8 +30,22 @@ VS
 (a . (b . (c . nil)))
 
 Make it readable like a book.
-Do minimal compilation (need to be able to read the source).
-  - if compile make sure to decompile
+
+Keeping everything as cons cells works really well.
+I made a queue that works great. no more reversing cons lists
+
+Using this image format you can also make arrays with cons cells because they are all allocated in order
+
+
+I like this image format. very easy to save and load
+
+Builtins are done in a style i like too. function pointers are probably better than doing switch case (could be extended to do calls to dlls)
+
+I'm happy about the string impl. keep count, and keeps cstr. easy to print and has advantage of getting count (dont care about the extra word)
+
+env lookup is powerful but slow -- uses the simple way of a pure list
+- closures should work with this
+
 
 ```
 (asdf (e 3) (b 1) ie)

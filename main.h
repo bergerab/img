@@ -84,5 +84,20 @@ word pac(word name, word pacs, word syms, word doc); // packages are like folder
 #define BIF_REF(bif) REF(bif, 13)
 #define IS_BIF(bif)  IS_TYPE(bif, 13)
 
+// 0000 1111
+#define REF_FUN(ptr)   REF(ptr, 15)
+#define IS_FUN(ptr)    IS_TYPE(ptr, 15)
+#define FUN_PROPS(sym) FCAR1(sym)
+#define FUN_NAME(sym)  FCAR2(sym)
+#define FUN_ARGS(sym)  FCAR3(sym)
+#define FUN_BODY(sym)  FCAR4(sym)
+#define FUN_ENV(sym)   FCAR5(sym)
+#define FUN_DOC(sym)   FCAR6(sym)
+word fun(word name, word args, word body, word doc);
+
+
 word intern(char *s, word pac);
-word eval(word e, word ctx);
+word eval();
+
+void free_list(word cons);
+void free_cell(word cons);

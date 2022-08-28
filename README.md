@@ -100,3 +100,25 @@ eval fun first. check if there is any dispatch with an expr
 
 when you call a expr, gotta pass the args
 how to validate number of args
+
+365/365
+364/365
+363/365
+363/365
+362/365
+
+(fn b ()
+  (fn a (x)
+    y))
+
+(fn b ()
+  (map 
+    (fn (x) (+ x y)) 
+    '(1 2 3 4)))
+
+
+
+(let
+  ((a 1)
+   (b 2))
+  )

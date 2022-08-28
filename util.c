@@ -23,6 +23,39 @@ word count(word cons) {
   return c;
 }
 
+// cdr, but frees the cell
+word pop(word cons) {
+  if (cons == NIL) return NIL;
+  word r = FCDR1(cons);
+  free_cell(cons);
+  return r;
+}
+
+// just cons
+word push(word c, word val) {
+  return cons(val, c);
+}
+
+#define Q_HEAD(q) FCAR1(q)
+#define Q_TAIL(q) FCAR2(q)
+word queue() {
+  // first item is head second is tail
+  return cons(NIL, cons(NIL, NIL));
+}
+
+void enqueue(word q, word val) {
+  if (FCAR1(q) == NIL) Q_HEAD(q) = Q_TAIL(q) = cons(val, NIL);
+  else Q_TAIL(q) = FCDR1(Q_TAIL(q)) = cons(val, NIL);
+}
+
+void dequeue(word q, word val) {
+  if (Q_HEAD(q) != NIL) {
+    word dead = Q_HEAD(q);
+    Q_HEAD(q) = FCDR1(Q_HEAD(q));
+    free_cell(dead);
+  }
+}
+
 void show_pac(word pac) {
   word cursor = PAC_SYMS(pac);
   word name = PAC_NAME(pac);

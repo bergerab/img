@@ -1,10 +1,39 @@
+```
 An attempt to be totally image based
+Maybe compilation is the enemy of a successful image environment.
+Whenever you compile something or have a macro, you are fixing the behavior
+If the environment is dynamic enough, you will be updating functions and symbols at runtime
+We don't want to have to recompile everything if we change one thing.
+Another issue is that we want to be able to reproduce the source easily.
+if you compile, you need a function to decompile (could be done if you add enough annotation to your compiled code)
+Image based systems can be confusing if they don't reliably produce the expected source.
+E.g. if you use SSMS to create an existing function, the result is usually a bit different than what you inputted
+e.g. SLIME is annoying when your image gets out of sync with the source code
+
+Why not ditch the source code and not rely on files and have the image be the only source of truth.
+This has been done before (I think) with smalltalk.
+
+
+## some idea i had about lisp
+the paren syntax denotes a cons list.
+but it gets confusing when the (1 . 2) syntax is used. Its infix
+I thought it is best to have another type of paren that truely makes a cons
+This makes things easier to see e.g. 
+([a 1] [b 2] [c 3])
+over
+((a . 1) (b . 2) (c . 3))
+The meaning of (a . 1) is hard to understand on its own. It looks like a cons list but its really not 
+the reader translates it to cons(a, 1) (I think?)
+square brackets would work the same as "." but it makes it obvious that this is another type of expression that isn't a cons list.
+[a [b [c nil]]]
+VS
+(a . (b . (c . nil)))
 
 Make it readable like a book.
 Do minimal compilation (need to be able to read the source).
   - if compile make sure to decompile
 
-
+```
 (asdf (e 3) (b 1) ie)
 
 (fun asdf ((a 3) (b 1))

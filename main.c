@@ -280,13 +280,13 @@ int main() {
     word e = read(stdin);
     print(eval(e, NIL));
     printf("\n");
+    //dump_img("mydump.img");
   }
 
   word r =
       eval(cons(intern("+", MAIN),
                 cons(REF_NUM(1), cons(REF_NUM(2), cons(REF_NUM(3), NIL)))), NIL);
   print(r);
-  // dump_img("mydump.img");
   // show_pac(MAIN);
   return 1;
 }

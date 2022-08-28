@@ -4,9 +4,10 @@
 
 #define BIF(cname) word bif_##cname(word args, word env)
 
-#define DEF_BIF(cname, name)      \
-  BIF_FNS[BIF_LEN] = bif_##cname; \
-  if (add_to_img) SYM_VAL(intern(name, MAIN)) = BIF_REF(BIF_LEN++)
+#define DEF_BIF(cname, name)                                      \
+  BIF_FNS[BIF_LEN] = bif_##cname;                                 \
+  if (add_to_img) SYM_VAL(intern(name, MAIN)) = BIF_REF(BIF_LEN); \
+  ++BIF_LEN
 
 #define EVAL_ALL()                                  \
   word eargs = NIL;                                 \
@@ -56,8 +57,19 @@ BIF(fun) {
   return f;
 }
 
+BIF(at_doc) {
+  word v = FCAR1(args);
+  if (IS_SYM(v)) return SYM_DOC(v); 
+  if (IS_FUN(v)) return FUN_DOC(v); 
+  return NIL;
+}
+
 BIF(queue) {
   return queue();
+}
+
+BIF(cons) {
+  return cons(FCAR1(args), FCAR2(args));
 }
 
 BIF(sub) {
@@ -75,12 +87,14 @@ void init_bifs(char add_to_img) {
   DEF_BIF(sub, "-");
   DEF_BIF(fun, "fun");
   DEF_BIF(queue, "queue");
+  DEF_BIF(at_doc, "@doc");
+  DEF_BIF(cons, ".");
 }
 
 word eval_bif(word bif, word args, word env) {
   word i = UNREF(bif);
   if (i >= BIF_LEN) {
-    printf("Invalid BIF! You tried to call a BIF that doesn't exist.\n");
+    printf("Invalid BIF! You tried to call a BIF that doesn't exist %llu only %llu BIFs.\n", i, BIF_LEN);
     exit(1);
   }
   return BIF_FNS[i](args, env);

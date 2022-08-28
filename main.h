@@ -94,7 +94,8 @@ word pac(word name, word pacs, word syms, word doc); // packages are like folder
 #define FUN_BODY(fun)  FCAR4(fun)
 #define FUN_ENV(fun)   FCAR5(fun)
 #define FUN_DOC(fun)   FCAR6(fun)
-word fun(word name, word args, word body, word doc);
+#define FUN_SRC(fun)   FCAR7(fun)
+word fun(word name, word args, word body, word doc, word src);
 
 word intern(char *s, word pac);
 word eval();

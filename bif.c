@@ -9,13 +9,14 @@
   if (add_to_img) SYM_VAL(intern(name, MAIN)) = BIF_REF(BIF_LEN); \
   ++BIF_LEN
 
-#define EVAL_ALL()                                  \
-  word eargs = NIL;                                 \
-  while (args != NIL) {                             \
-    eargs = cons(eval(CONS_CAR(args), env), eargs); \
-    args = CONS_CDR(args);                          \
-  }                                                 \
-  args = eargs
+#define EVAL_ALL()                         \
+  word q = queue();                        \
+  while (args != NIL) {                    \
+    enqueue(q, eval(CONS_CAR(args), env)); \
+    args = CONS_CDR(args);                 \
+  }                                        \
+  args = Q_HEAD(q);                        \
+  free_queue(q)
 
 word BIF_LEN = 0;
 word (*BIF_FNS[256])(word, word);
@@ -51,10 +52,20 @@ BIF(fun) {
     doc = FCAR1(body);
     body = FCDR1(body);
   }
-  word f = fun(name, fargs, body, doc);
+  word f = fun(name, fargs, body, doc, args);
   FUN_ENV(f) = env; // closure environment
   SYM_VAL(name) = f;
   return f;
+}
+
+BIF(list) {
+  EVAL_ALL();
+  return args;
+}
+
+BIF(quote) {
+  if (FCDR1(args) == NIL) return FCAR1(args);
+  return args;
 }
 
 BIF(at_doc) {
@@ -62,6 +73,10 @@ BIF(at_doc) {
   if (IS_SYM(v)) return SYM_DOC(v); 
   if (IS_FUN(v)) return FUN_DOC(v); 
   return NIL;
+}
+
+BIF(at_src) {
+  return FUN_SRC(FCAR1(args));
 }
 
 BIF(queue) {
@@ -88,7 +103,10 @@ void init_bifs(char add_to_img) {
   DEF_BIF(fun, "fun");
   DEF_BIF(queue, "queue");
   DEF_BIF(at_doc, "@doc");
-  DEF_BIF(cons, ".");
+  DEF_BIF(at_src, "@src");
+  DEF_BIF(list, "list");
+  DEF_BIF(cons, "cons");
+  DEF_BIF(quote, "'");
 }
 
 word eval_bif(word bif, word args, word env) {

@@ -12,8 +12,10 @@ word CTXS; // contexts
 word ARGS; // argument stack
 word FUN; // fun symbol
 word IF; // if symbol
-word POPEN; // ( symbol
-word PCLOSE; // ) symbol
+word LOPEN; // ( symbol
+word LCLOSE; // ) symbol
+word COPEN; // [ symbol
+word CCLOSE; // ] symbol
 
 #include "util.c"
 #include "bif.c"
@@ -45,10 +47,10 @@ word pac(word name, word pacs, word syms, word doc) { // packages are like folde
   return REF_PAC(UNREF(p));
 }
 
-word fun(word name, word args, word body, word doc) { // packages are like folders for symbols
+word fun(word name, word args, word body, word doc, word src) { // packages are like folders for symbols
   word props = REF_NUM(count(args));
   // after body is the ENV this is for closures -- only useful when there's nested functions
-  word f = cons(name, cons(props, cons(args, cons(body, cons(NIL, cons(doc, NIL))))));
+  word f = cons(name, cons(props, cons(args, cons(body, cons(NIL, cons(doc, cons(src, NIL)))))));
   return REF_FUN(UNREF(f));
 }
 
@@ -67,8 +69,10 @@ void init_img() { /* bootstraps an initial environment */
   ARGS = intern("args", MAIN);
   FUN = intern("fun", MAIN);
   IF = intern("if", MAIN);
-  POPEN = intern("(", MAIN);
-  PCLOSE = intern(")", MAIN);
+  LOPEN = intern("(", MAIN);
+  LCLOSE = intern(")", MAIN);
+  COPEN = intern("[", MAIN);
+  CCLOSE = intern("]", MAIN);
 }
 
 void dump_img(char *fp) {
@@ -104,8 +108,10 @@ void load_img(char *fp) {
   ARGS = intern("args", MAIN);
   FUN = intern("fun", MAIN);
   IF = intern("if", MAIN);
-  POPEN = intern("(", MAIN);
-  PCLOSE = intern(")", MAIN);
+  COPEN = intern("[", MAIN);
+  CCLOSE = intern("]", MAIN);
+  LOPEN = intern("(", MAIN);
+  LCLOSE = intern(")", MAIN);
 }
 
 void free_cell(word cons) {
@@ -165,6 +171,14 @@ word eval(word e, word env) {
 }
 
 void print_cons(word e) {
+  if (!IS_CONS(CONS_CDR(e)) && CONS_CDR(e) != NIL) {
+    printf("[");
+    print(CONS_CAR(e));
+    printf(" ");
+    print(CONS_CDR(e));
+    printf("]");
+    return;
+  }
   printf("(");
   print(CONS_CAR(e));
   word c = CONS_CDR(e);
@@ -203,7 +217,7 @@ void print(word e) {
 
 // reader
 char is_whitespace(int c) { return c == ' ' || c == '\t' || c == '\n' || c == '\r'; }
-char is_breakchar(int c) { return c == '(' || c == ')' || c == '"'; }
+char is_breakchar(int c) { return c == '[' || c == ']' || c == '(' || c == ')' || c == '"'; }
 char is_digit(int c) { return c >= '0' && c <= '9'; }
 char skip_whitespace(FILE *f) {
   int c;
@@ -237,14 +251,26 @@ word read_sym(FILE *f) {
   return intern(s, MAIN);
 }
 
+// should make cons (not list with [])
+// alist is like this: ([a 1] [b 2] [c 3] [d 4])
 word read(FILE *f) { // reads a single expr
   word e, q = NIL;
   if (!skip_whitespace(f)) return 0;
   while ((e = read_sym(f))) {
-    if (e == POPEN) {
+    if (e == COPEN) { // read a single cons cell
+      word car = read(f);
+      word cdr = read(f);
+      e = cons(car, cdr);
+      if (read_sym(f) != CCLOSE) {
+        printf("error expected closed cons\n");
+        exit(1);
+      }
+    }
+
+    if (e == LOPEN) {
       if (q == NIL) q = queue();
       push_queue(q, queue());
-    } else if (e == PCLOSE) {
+    } else if (e == LCLOSE) {
       if (UNREF(Q_SIZE(q)) == 1) { // last item ((1 2 3)) -> (1 2 3)
         word sexpr_q = queue_first(q);
         free_queue(q);

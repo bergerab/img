@@ -24,8 +24,6 @@ word (*BIF_FNS[256])(word, word);
 BIF(add) { 
   EVAL_ALL();
   word c = 0;
-  // can I put something on the stack and return here 
-  // this whole function would just be creating continuations
   while (args != NIL) {
     word car = CONS_CAR(args);
     if (IS_NUM(car)) c += UNREF(car);

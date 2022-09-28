@@ -8,8 +8,6 @@ word MAIN; // the root package
 word PAC; // the current package
 word FREE; // the free list
 word VER; // version (for image files)
-word CTXS; // contexts
-word ARGS; // argument stack
 word FUN; // fun symbol
 word IF; // if symbol
 word LOPEN; // ( symbol
@@ -65,8 +63,6 @@ void init_img() { /* bootstraps an initial environment */
   SYM_PAC(NIL) = MAIN;
   PAC = intern("pac", MAIN);
   FREE = intern("flist", MAIN);
-  CTXS = intern("ctxs", MAIN);
-  ARGS = intern("args", MAIN);
   FUN = intern("fun", MAIN);
   IF = intern("if", MAIN);
   LOPEN = intern("(", MAIN);
@@ -104,8 +100,6 @@ void load_img(char *fp) {
   fread(IMG, sizeof(word), I, f);
   fclose(f);
   PAC = intern("pac", MAIN);
-  CTXS = intern("ctxs", MAIN);
-  ARGS = intern("args", MAIN);
   FUN = intern("fun", MAIN);
   IF = intern("if", MAIN);
   COPEN = intern("[", MAIN);
@@ -294,7 +288,7 @@ word read(FILE *f) { // reads a single expr
 int main() {
   char load = 0;
   if (load) {
-    load_img("mydump.img");
+    load_img("dump.img");
     init_bifs(0);
   } else {
     init_img();
